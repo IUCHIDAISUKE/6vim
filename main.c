@@ -282,75 +282,6 @@ void abFree(struct abuf *ab)
     free(ab->b);
 }
 
-/*** input ***/
-
-void editorMoveCursol(int key)
-{
-    switch (key)
-    {
-    case ARROW_LEFT:
-        if (E.cx != 0)
-        {
-            E.cx--;
-        }
-        break;
-    case ARROW_RIGHT:
-        E.cx++;
-        break;
-    case ARROW_UP:
-        if (E.cy != 0)
-        {
-            E.cy--;
-        }
-        break;
-    case ARROW_DOWN:
-        if (E.cy < E.numrows)
-        {
-            E.cy++;
-        }
-        break;
-    }
-}
-
-void editorProcessKeypress()
-{
-    int c = editorReadKey();
-
-    switch (c)
-    {
-    case CTRL_KEY('q'):
-        write(STDOUT_FILENO, "\x1b[2J", 4);
-        write(STDOUT_FILENO, "\x1b[H", 3);
-        exit(0);
-        break;
-
-    case HOME_KEY:
-        E.cx = 0;
-        break;
-
-    case END_KEY:
-        E.cx = E.screencols - 1;
-        break;
-
-    case PAGE_UP:
-    case PAGE_DOWN:
-    {
-        int times = E.screenrows;
-
-        while (times--)
-            editorMoveCursol(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
-    }
-    break;
-
-    case ARROW_UP:
-    case ARROW_DOWN:
-    case ARROW_LEFT:
-    case ARROW_RIGHT:
-        editorMoveCursol(c);
-        break;
-    }
-}
-
 /*** output ***/
 
 void editorScroll()
@@ -438,6 +369,80 @@ void editorRefreshScreen()
 
     write(STDOUT_FILENO, ab.b, ab.len);
     abFree(&ab);
+}
+
+/*** input ***/
+
+void editorMoveCursol(int key)
+{
+    erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
+
+    switch (key)
+    {
+    case ARROW_LEFT:
+        if (E.cx != 0)
+        {
+            E.cx--;
+        }
+        break;
+    case ARROW_RIGHT:
+        if (row && E.cx < row->size)
+        {
+            E.cx++;
+        }
+        break;
+    case ARROW_UP:
+        if (E.cy != 0)
+        {
+            E.cy--;
+        }
+        break;
+    case ARROW_DOWN:
+        if (E.cy < E.numrows)
+        {
+            E.cy++;
+        }
+        break;
+    }
+}
+
+void editorProcessKeypress()
+{
+    int c = editorReadKey();
+
+    switch (c)
+    {
+    case CTRL_KEY('q'):
+        write(STDOUT_FILENO, "\x1b[2J", 4);
+        write(STDOUT_FILENO, "\x1b[H", 3);
+        exit(0);
+        break;
+
+    case HOME_KEY:
+        E.cx = 0;
+        break;
+
+    case END_KEY:
+        E.cx = E.screencols - 1;
+        break;
+
+    case PAGE_UP:
+    case PAGE_DOWN:
+    {
+        int times = E.screenrows;
+
+        while (times--)
+            editorMoveCursol(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+    }
+    break;
+
+    case ARROW_UP:
+    case ARROW_DOWN:
+    case ARROW_LEFT:
+    case ARROW_RIGHT:
+        editorMoveCursol(c);
+        break;
+    }
 }
 
 /*** init ***/
