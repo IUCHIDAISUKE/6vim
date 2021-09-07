@@ -46,6 +46,7 @@ typedef struct erow
 struct editorConfig
 {
     int cx, cy;
+    int rx;
     int rowoff;
     int coloff;
     int screenrows;
@@ -82,7 +83,7 @@ void enableRawMode()
     struct termios raw = E.orig_termios;
     raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
     raw.c_oflag &= ~(OPOST);
-    raw.c_cflag |= ~(CS8);
+    raw.c_cflag |= (CS8);
     raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
     raw.c_cc[VMIN] = 0;
     raw.c_cc[VTIME] = 5;
@@ -175,7 +176,7 @@ int editorReadKey()
     }
 }
 
-int getCursolPosition(int *rows, int *cols)
+int getCursorPosition(int *rows, int *cols)
 {
     char buf[32];
     unsigned int i = 0;
@@ -195,7 +196,7 @@ int getCursolPosition(int *rows, int *cols)
 
     if (buf[0] != '\x1b' || buf[1] != '[')
         return -1;
-    if (sscanf(&buf[2], "%d:%d", rows, cols) != 2)
+    if (sscanf(&buf[2], "%d;%d", rows, cols) != 2)
         return -1;
     printf("\r\n&buf[1]: '%s'\r\n", &buf[1]);
     return 0;
@@ -210,7 +211,7 @@ int getWindowSize(int *rows, int *cols)
         if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
             return -1;
         editorReadKey();
-        return getCursolPosition(rows, cols);
+        return getCursorPosition(rows, cols);
     }
     else
     {
@@ -222,10 +223,25 @@ int getWindowSize(int *rows, int *cols)
 
 /*** row operations ***/
 
+int editorRowCxToRx(erow *row, int cx)
+{
+    int rx = 0;
+    int j;
+    for (j = 0; j < cx; j++)
+    {
+        if (row->chars[j] == '\t')
+        {
+            rx += (ROKUVIM_TAB_STOP - 1) - (rx % ROKUVIM_TAB_STOP);
+        }
+        rx++;
+    }
+    return rx;
+}
+
 void editorUpdateRow(erow *row)
 {
     int tabs = 0;
-    int j = 0;
+    int j;
     for (j = 0; j < row->size; j++)
     {
         if (row->chars[j] == '\t')
@@ -279,7 +295,6 @@ void editorOpen(char *filename)
     char *line = NULL;
     size_t linecap = 0;
     ssize_t linelen;
-    linelen = getline(&line, &linecap, fp);
     while ((linelen = getline(&line, &linecap, fp)) != -1)
     {
         while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
@@ -290,7 +305,7 @@ void editorOpen(char *filename)
     fclose(fp);
 }
 
-/*** append bufer ***/
+/*** append buffer ***/
 
 struct abuf
 {
@@ -323,6 +338,11 @@ void abFree(struct abuf *ab)
 
 void editorScroll()
 {
+    E.rx = 0;
+    if (E.cy < E.numrows)
+    {
+        E.rx = editorRowCxToRx(&E.row[E.cy], E.cx);
+    }
     if (E.cy < E.rowoff)
     {
         E.rowoff = E.cy;
@@ -331,13 +351,13 @@ void editorScroll()
     {
         E.rowoff = E.cy - E.screenrows + 1;
     }
-    if (E.cx < E.coloff)
+    if (E.rx < E.coloff)
     {
-        E.coloff = E.cx;
+        E.coloff = E.rx;
     }
-    if (E.cx >= E.coloff + E.screencols)
+    if (E.rx >= E.coloff + E.screencols)
     {
-        E.coloff = E.cx - E.screencols + 1;
+        E.coloff = E.rx - E.screencols + 1;
     }
 }
 
@@ -399,7 +419,7 @@ void editorRefreshScreen()
     editorDrawRows(&ab);
 
     char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1, (E.cx - E.coloff) + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1, (E.rx - E.coloff) + 1);
     abAppend(&ab, buf, strlen(buf));
 
     abAppend(&ab, "\x1b[?25h", 6);
@@ -410,7 +430,7 @@ void editorRefreshScreen()
 
 /*** input ***/
 
-void editorMoveCursol(int key)
+void editorMoveCursor(int key)
 {
     erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
 
@@ -486,7 +506,7 @@ void editorProcessKeypress()
         int times = E.screenrows;
 
         while (times--)
-            editorMoveCursol(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+            editorMoveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
     }
     break;
 
@@ -494,7 +514,7 @@ void editorProcessKeypress()
     case ARROW_DOWN:
     case ARROW_LEFT:
     case ARROW_RIGHT:
-        editorMoveCursol(c);
+        editorMoveCursor(c);
         break;
     }
 }
@@ -505,6 +525,7 @@ void initEditor()
 {
     E.cx = 0;
     E.cy = 0;
+    E.rx = 0;
     E.rowoff = 0;
     E.coloff = 0;
     E.numrows = 0;
