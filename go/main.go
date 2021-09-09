@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"syscall"
+	"unicode"
 
 	"golang.org/x/sys/unix"
 )
@@ -36,12 +38,21 @@ func main() {
 	enableRawMode()
 	defer disableRawMode()
 
-	c := make([]byte, 1)
+	c := make([]byte, 4)
 	for {
-		os.Stdin.Read(c)
-		if string(c) == "q" {
+		n, err := os.Stdin.Read(c)
+		if err != nil && err != io.EOF {
+			panic(err)
+		}
+		r := rune(c[0])
+		if unicode.IsControl(rune(c[0])) {
+			fmt.Printf("%d\n", r)
+		} else {
+			fmt.Printf("%d ('%[1]c')\n", r)
+		}
+		if string(c[:n]) == "q" {
 			break
 		}
-		fmt.Printf("Press your key is %v, '%s'\n", c, string(c))
+		c = []byte{0, 0, 0, 0}
 	}
 }
