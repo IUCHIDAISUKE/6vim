@@ -24,7 +24,7 @@ func enableRawMode() {
 	}
 
 	termios := orig_termios
-	termios.Lflag &^= unix.ECHO
+	termios.Lflag &^= (unix.ECHO | unix.ICANON)
 
 	//TODO TIOCSETA is maybe system dependent code? You can use TCSETA?
 	if err := unix.IoctlSetTermios(syscall.Stdin, unix.TIOCSETA, termios); err != nil {
