@@ -8,12 +8,22 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+var orig_termios *unix.Termios
+
+func disableRawMode() {
+	if err := unix.IoctlSetTermios(syscall.Stdin, unix.TIOCSETA, orig_termios); err != nil {
+		panic(err)
+	}
+}
+
 func enableRawMode() {
-	termios, err := unix.IoctlGetTermios(syscall.Stdin, unix.TIOCGETA)
+	var err error
+	orig_termios, err = unix.IoctlGetTermios(syscall.Stdin, unix.TIOCGETA)
 	if err != nil {
 		panic(err)
 	}
 
+	termios := orig_termios
 	termios.Lflag &^= unix.ECHO
 
 	//TODO TIOCSETA is maybe system dependent code? You can use TCSETA?
@@ -24,6 +34,7 @@ func enableRawMode() {
 
 func main() {
 	enableRawMode()
+	defer disableRawMode()
 
 	c := make([]byte, 1)
 	for {
