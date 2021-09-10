@@ -30,6 +30,8 @@ func enableRawMode() {
 	termios.Oflag &^= (unix.OPOST)
 	termios.Cflag |= (unix.CS8)
 	termios.Lflag &^= (unix.ECHO | unix.ICANON | unix.ISIG | unix.IEXTEN)
+	termios.Cc[unix.VMIN] = 0
+	termios.Cc[unix.VTIME] = 1
 
 	//TODO TIOCSETA is maybe system dependent code? You can use TCSETA?
 	if err := unix.IoctlSetTermios(syscall.Stdin, unix.TIOCSETA, termios); err != nil {
@@ -41,8 +43,10 @@ func main() {
 	enableRawMode()
 	defer disableRawMode()
 
-	c := make([]byte, 4)
 	for {
+		//TODO too many allocate memory?
+		c := make([]byte, 4)
+
 		n, err := os.Stdin.Read(c)
 		if err != nil && err != io.EOF {
 			panic(err)
@@ -56,6 +60,5 @@ func main() {
 		if string(c[:n]) == "q" {
 			break
 		}
-		c = []byte{0, 0, 0, 0}
 	}
 }
