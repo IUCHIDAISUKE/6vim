@@ -10,8 +10,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+/*** data ***/
 var orig_termios *unix.Termios
 
+/*** terminal ***/
 func die(s string, err error) {
 	fmt.Fprintf(os.Stderr, "error: %s, %v\n", s, err)
 	os.Exit(1)
@@ -44,6 +46,7 @@ func enableRawMode() {
 	}
 }
 
+/*** init ***/
 func main() {
 	enableRawMode()
 	defer disableRawMode()
