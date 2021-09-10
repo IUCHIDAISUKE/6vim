@@ -27,6 +27,7 @@ func enableRawMode() {
 
 	termios := orig_termios
 	termios.Iflag &^= (unix.ICRNL | unix.IXON)
+	termios.Oflag &^= (unix.OPOST)
 	termios.Lflag &^= (unix.ECHO | unix.ICANON | unix.ISIG | unix.IEXTEN)
 
 	//TODO TIOCSETA is maybe system dependent code? You can use TCSETA?
@@ -47,9 +48,9 @@ func main() {
 		}
 		r := rune(c[0])
 		if unicode.IsControl(rune(c[0])) {
-			fmt.Printf("%d\n", r)
+			fmt.Printf("%d\r\n", r)
 		} else {
-			fmt.Printf("%d ('%[1]c')\n", r)
+			fmt.Printf("%d ('%[1]c')\r\n", r)
 		}
 		if string(c[:n]) == "q" {
 			break
