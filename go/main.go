@@ -12,9 +12,14 @@ import (
 
 var orig_termios *unix.Termios
 
+func die(s string, err error) {
+	fmt.Fprintf(os.Stderr, "error: %s, %v\n", s, err)
+	os.Exit(1)
+}
+
 func disableRawMode() {
 	if err := unix.IoctlSetTermios(syscall.Stdin, unix.TIOCSETA, orig_termios); err != nil {
-		panic(err)
+		die("IoctlSetTermios", err)
 	}
 }
 
@@ -22,7 +27,7 @@ func enableRawMode() {
 	var err error
 	orig_termios, err = unix.IoctlGetTermios(syscall.Stdin, unix.TIOCGETA)
 	if err != nil {
-		panic(err)
+		die("IoctlGetTermios", err)
 	}
 
 	termios := orig_termios
@@ -35,7 +40,7 @@ func enableRawMode() {
 
 	//TODO TIOCSETA is maybe system dependent code? You can use TCSETA?
 	if err := unix.IoctlSetTermios(syscall.Stdin, unix.TIOCSETA, termios); err != nil {
-		panic(err)
+		die("IoctlSetTermios", err)
 	}
 }
 
@@ -49,7 +54,7 @@ func main() {
 
 		n, err := os.Stdin.Read(c)
 		if err != nil && err != io.EOF {
-			panic(err)
+			die("read", err)
 		}
 		r := rune(c[0])
 		if unicode.IsControl(rune(c[0])) {
