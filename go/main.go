@@ -26,8 +26,9 @@ func enableRawMode() {
 	}
 
 	termios := orig_termios
-	termios.Iflag &^= (unix.ICRNL | unix.IXON)
+	termios.Iflag &^= (unix.BRKINT | unix.ICRNL | unix.INPCK | unix.ISTRIP | unix.IXON)
 	termios.Oflag &^= (unix.OPOST)
+	termios.Cflag |= (unix.CS8)
 	termios.Lflag &^= (unix.ECHO | unix.ICANON | unix.ISIG | unix.IEXTEN)
 
 	//TODO TIOCSETA is maybe system dependent code? You can use TCSETA?
