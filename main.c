@@ -378,7 +378,7 @@ void editorInsertNewline()
         row->chars[row->size] = '\0';
         editorUpdateRow(row);
     }
-    E.cx++;
+    E.cy++;
     E.cx = 0;
 }
 
