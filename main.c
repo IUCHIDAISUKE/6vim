@@ -627,12 +627,6 @@ void editorProcessKeypress()
     case '\r':
         break;
     case CTRL_KEY('q'):
-        write(STDOUT_FILENO, "\x1b[2J", 4);
-        write(STDOUT_FILENO, "\x1b[H", 3);
-        exit(0);
-        break;
-
-    case CTRL_KEY('s'):
         if (E.dirty && quit_times > 0)
         {
             editorSetStatusMessage("WARNING!!! File has unsaved changes."
@@ -641,6 +635,13 @@ void editorProcessKeypress()
             quit_times--;
             return;
         }
+        write(STDOUT_FILENO, "\x1b[2J", 4);
+        write(STDOUT_FILENO, "\x1b[H", 3);
+        exit(0);
+        break;
+
+    case CTRL_KEY('s'):
+
         editorSave();
         break;
 
