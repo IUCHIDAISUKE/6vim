@@ -320,6 +320,7 @@ void editorInsertChar(int c)
         editorAppendRow("", 0);
     }
     editorRowInsertChar(&E.row[E.cy], E.cx, c);
+    E.cx++;
 }
 
 /*** file i/o ***/
